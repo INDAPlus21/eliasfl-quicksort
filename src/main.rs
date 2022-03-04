@@ -5,7 +5,7 @@ fn main() {
     std::io::stdin().lock().read_to_string(&mut line).unwrap();
     let mut numbers = line
         .split_ascii_whitespace()
-        .map(|num| num.parse::<i32>().unwrap());
+        .map(|num| num.parse().unwrap());
     // discard length of following numbers
     let length = numbers.next().unwrap();
     // TODO: multithreaded https://doc.rust-lang.org/std/thread/
@@ -14,47 +14,18 @@ fn main() {
     } else if length > 256 {
         // TODO: split sorting into 2 threads
     }
-    let mut nums: Vec<_> = numbers.collect();
-    nums.sort_unstable();
+    let mut nums: Vec<i32> = numbers.collect();
+    introspective(&mut nums);
+
+    print!("{}", nums[0]);
+    for num in nums {
+        print!(" {}", num);
+    }
 }
 
 fn introspective(seq: &mut Vec<i32>) {
     let depthlimit = 2 * ((seq.len() as f32).log2().floor() as u32);
     introsort(seq, depthlimit);
-}
-
-#[test]
-fn test_introspective() {
-    let mut elements = vec![];
-    introspective(&mut elements);
-    assert_eq!(elements, vec![]);
-
-    let mut elements = vec![1];
-    introspective(&mut elements);
-    assert_eq!(elements, vec![1]);
-
-    let mut elements = vec![1, 5, 6, 2, 3, 4];
-    introspective(&mut elements);
-    assert_eq!(elements, vec![1, 2, 3, 4, 5, 6]);
-
-    let mut elements = vec![
-        7, 4, 7, 9, 4, 2, 6, 7, 8, 3, 1, 3, 5, 6, 7, 8, 2, 1, 9, 234, 534, 534, 423, 123, 4, 54,
-        34, 6,
-    ];
-    introspective(&mut elements);
-    assert_eq!(
-        elements,
-        vec![
-            1, 1, 2, 2, 3, 3, 4, 4, 4, 5, 6, 6, 6, 7, 7, 7, 7, 8, 8, 9, 9, 34, 54, 123, 234, 423,
-            534, 534
-        ]
-    );
-
-    let mut nums: Vec<i32> = (0..10000).map(|_| rand::random()).collect();
-    let mut nums_copy = nums.clone();
-    introspective(&mut nums);
-    nums_copy.sort_unstable();
-    assert_eq!(nums, nums_copy);
 }
 
 fn introsort(seq: &mut [i32], maxdepth: u32) {
@@ -96,26 +67,6 @@ fn median3(seq: &[i32], a: usize, b: usize, c: usize) -> usize {
     }
 }
 
-fn partition(seq: &mut [i32], low: usize, high: usize) -> usize {
-    let pivot = seq[low];
-    let mut i: i32 = low as i32 - 1;
-    let mut j: i32 = high as i32 + 1;
-    loop {
-        i = i + 1; // do, while
-        while seq[i as usize] < pivot {
-            i = i + 1;
-        }
-        j = j - 1; // do, while
-        while seq[j as usize] > pivot {
-            j = j - 1;
-        }
-        if i >= j {
-            return j as usize;
-        }
-        seq.swap(i as usize, j as usize);
-    }
-}
-
 fn heapsort(seq: &mut [i32]) {
     let end = seq.len();
 
@@ -150,40 +101,6 @@ fn sift_down(seq: &mut [i32], start: usize, end: usize) {
     }
 }
 
-#[test]
-fn test_heap() {
-    let mut elements = Vec::new();
-    heapsort(&mut elements);
-    assert_eq!(elements, vec![]);
-    elements.push(1);
-    heapsort(&mut elements);
-    assert_eq!(elements, vec![1]);
-    elements = vec![1, 5, 6, 2, 3, 4];
-    heapsort(&mut elements);
-    assert_eq!(elements, vec![1, 2, 3, 4, 5, 6]);
-}
-
-fn quicksort(seq: &mut Vec<i32>) {
-    if seq.len() < 2 {
-        return;
-    }
-    // Insert
-    return;
-}
-
-#[test]
-fn test_quick() {
-    let mut elements = Vec::new();
-    quicksort(&mut elements);
-    assert_eq!(elements, vec![]);
-    elements.push(1);
-    quicksort(&mut elements);
-    assert_eq!(elements, vec![1]);
-    elements = vec![1, 5, 6, 2, 3, 4];
-    quicksort(&mut elements);
-    assert_eq!(elements, vec![1, 2, 3, 4, 5, 6]);
-}
-
 fn insertionsort(seq: &mut [i32]) {
     let items = seq.len();
     if items < 2 {
@@ -197,6 +114,73 @@ fn insertionsort(seq: &mut [i32]) {
             j -= 1;
         }
     }
+}
+
+fn partition(seq: &mut [i32], low: usize, high: usize) -> usize {
+    let pivot = seq[low];
+    let mut i: i32 = low as i32 - 1;
+    let mut j: i32 = high as i32 + 1;
+    loop {
+        i = i + 1; // do, while
+        while seq[i as usize] < pivot {
+            i = i + 1;
+        }
+        j = j - 1; // do, while
+        while seq[j as usize] > pivot {
+            j = j - 1;
+        }
+        if i >= j {
+            return j as usize;
+        }
+        seq.swap(i as usize, j as usize);
+    }
+}
+
+#[test]
+fn test_introspective() {
+    let mut elements = vec![];
+    introspective(&mut elements);
+    assert_eq!(elements, vec![]);
+
+    let mut elements = vec![1];
+    introspective(&mut elements);
+    assert_eq!(elements, vec![1]);
+
+    let mut elements = vec![1, 5, 6, 2, 3, 4];
+    introspective(&mut elements);
+    assert_eq!(elements, vec![1, 2, 3, 4, 5, 6]);
+
+    let mut elements = vec![
+        7, 4, 7, 9, 4, 2, 6, 7, 8, 3, 1, 3, 5, 6, 7, 8, 2, 1, 9, 234, 534, 534, 423, 123, 4, 54,
+        34, 6,
+    ];
+    introspective(&mut elements);
+    assert_eq!(
+        elements,
+        vec![
+            1, 1, 2, 2, 3, 3, 4, 4, 4, 5, 6, 6, 6, 7, 7, 7, 7, 8, 8, 9, 9, 34, 54, 123, 234, 423,
+            534, 534
+        ]
+    );
+
+    let mut nums: Vec<i32> = (0..10000).map(|_| rand::random()).collect();
+    let mut nums_copy = nums.clone();
+    introspective(&mut nums);
+    nums_copy.sort_unstable();
+    assert_eq!(nums, nums_copy);
+}
+
+#[test]
+fn test_heap() {
+    let mut elements = Vec::new();
+    heapsort(&mut elements);
+    assert_eq!(elements, vec![]);
+    elements.push(1);
+    heapsort(&mut elements);
+    assert_eq!(elements, vec![1]);
+    elements = vec![1, 5, 6, 2, 3, 4];
+    heapsort(&mut elements);
+    assert_eq!(elements, vec![1, 2, 3, 4, 5, 6]);
 }
 
 #[test]
@@ -215,6 +199,6 @@ fn test_insertion() {
 #[test]
 fn benchmark_sort() {
     let start = std::time::Instant::now();
-    quicksort(&mut vec![1, 3, 2]);
+    introspective(&mut vec![1, 3, 2]);
     println!("{:#?}", start.elapsed());
 }
