@@ -3,26 +3,22 @@ use std::io::Read;
 fn main() {
     let mut line = String::new();
     std::io::stdin().lock().read_to_string(&mut line).unwrap();
-    let mut numbers = line
+    let mut nums = line
         .split_ascii_whitespace()
-        .map(|num| num.parse().unwrap());
-    // discard length of following numbers
-    let length = numbers.next().unwrap();
-    // TODO: multithreaded https://doc.rust-lang.org/std/thread/
-    if length > 50000 {
-        // TODO: split sorting into 4 threads
-    } else if length > 256 {
-        // TODO: split sorting into 2 threads
-    }
-    let mut nums: Vec<i32> = numbers.collect();
+        .skip(1)
+        .map(|num| num.parse().unwrap())
+        .collect();
     introspective(&mut nums);
 
-    print!("{}", nums[0]);
-    for num in &nums[1..] {
-        print!(" {}", num);
+    let mut output = String::new();
+    for num in &nums {
+        output.push_str(&num.to_string());
+        output.push(' ');
     }
+    print!("{}", output);
 }
 
+#[inline]
 fn introspective(seq: &mut Vec<i32>) {
     let depthlimit = 2 * ((seq.len() as f32).log2().floor() as u32);
     introsort(seq, depthlimit);
@@ -38,16 +34,16 @@ fn introsort(seq: &mut [i32], maxdepth: u32) {
         heapsort(seq);
     } else {
         let p = partition(seq);
-
         introsort(&mut seq[0..p], maxdepth - 1);
         introsort(&mut seq[p + 1..n], maxdepth - 1);
     }
 }
 
-fn partition<T: PartialOrd>(v: &mut [T]) -> usize {
+#[inline]
+fn partition(v: &mut [i32]) -> usize {
     let len = v.len();
-    let pivot_index = len / 2;
     let last_index = len - 1;
+    let pivot_index = median3(v, 0, len / 2, last_index);
 
     v.swap(pivot_index, last_index);
 
@@ -63,6 +59,7 @@ fn partition<T: PartialOrd>(v: &mut [T]) -> usize {
     store_index
 }
 
+#[inline]
 fn heapsort(seq: &mut [i32]) {
     let end = seq.len();
 
@@ -78,6 +75,7 @@ fn heapsort(seq: &mut [i32]) {
     }
 }
 
+#[inline]
 fn sift_down(seq: &mut [i32], start: usize, end: usize) {
     let mut root = start;
     loop {
@@ -97,6 +95,7 @@ fn sift_down(seq: &mut [i32], start: usize, end: usize) {
     }
 }
 
+#[inline]
 fn insertionsort(seq: &mut [i32]) {
     let items = seq.len();
     if items < 2 {
@@ -133,69 +132,74 @@ fn median3(seq: &[i32], a: usize, b: usize, c: usize) -> usize {
     }
 }
 
-#[test]
-fn test_introspective() {
-    let mut elements = vec![];
-    introspective(&mut elements);
-    assert_eq!(elements, vec![]);
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    let mut elements = vec![1];
-    introspective(&mut elements);
-    assert_eq!(elements, vec![1]);
+    #[test]
+    fn test_introspective() {
+        let mut elements = vec![];
+        introspective(&mut elements);
+        assert_eq!(elements, vec![]);
 
-    let mut elements = vec![1, 5, 6, 2, 3, 4];
-    introspective(&mut elements);
-    assert_eq!(elements, vec![1, 2, 3, 4, 5, 6]);
+        let mut elements = vec![1];
+        introspective(&mut elements);
+        assert_eq!(elements, vec![1]);
 
-    let mut elements = vec![
-        7, 4, 7, 9, 4, 2, 6, 7, 8, 3, 1, 3, 5, 6, 7, 8, 2, 1, 9, 234, 534, 534, 423, 123, 4, 54,
-        34, 6,
-    ];
-    introspective(&mut elements);
-    assert_eq!(
-        elements,
-        vec![
-            1, 1, 2, 2, 3, 3, 4, 4, 4, 5, 6, 6, 6, 7, 7, 7, 7, 8, 8, 9, 9, 34, 54, 123, 234, 423,
-            534, 534
-        ]
-    );
+        let mut elements = vec![1, 5, 6, 2, 3, 4];
+        introspective(&mut elements);
+        assert_eq!(elements, vec![1, 2, 3, 4, 5, 6]);
 
-    let mut nums: Vec<i32> = (0..10000).map(|_| rand::random()).collect();
-    let mut nums_copy = nums.clone();
-    introspective(&mut nums);
-    nums_copy.sort_unstable();
-    assert_eq!(nums, nums_copy);
-}
+        let mut elements = vec![
+            7, 4, 7, 9, 4, 2, 6, 7, 8, 3, 1, 3, 5, 6, 7, 8, 2, 1, 9, 234, 534, 534, 423, 123, 4,
+            54, 34, 6,
+        ];
+        introspective(&mut elements);
+        assert_eq!(
+            elements,
+            vec![
+                1, 1, 2, 2, 3, 3, 4, 4, 4, 5, 6, 6, 6, 7, 7, 7, 7, 8, 8, 9, 9, 34, 54, 123, 234,
+                423, 534, 534
+            ]
+        );
 
-#[test]
-fn test_heap() {
-    let mut elements = Vec::new();
-    heapsort(&mut elements);
-    assert_eq!(elements, vec![]);
-    elements.push(1);
-    heapsort(&mut elements);
-    assert_eq!(elements, vec![1]);
-    elements = vec![1, 5, 6, 2, 3, 4];
-    heapsort(&mut elements);
-    assert_eq!(elements, vec![1, 2, 3, 4, 5, 6]);
-}
+        let mut nums: Vec<i32> = (0..10000).map(|_| rand::random()).collect();
+        let mut nums_copy = nums.clone();
+        introspective(&mut nums);
+        nums_copy.sort_unstable();
+        assert_eq!(nums, nums_copy);
+    }
 
-#[test]
-fn test_insertion() {
-    let mut elements = Vec::new();
-    insertionsort(&mut elements);
-    assert_eq!(elements, vec![]);
-    elements.push(1);
-    insertionsort(&mut elements);
-    assert_eq!(elements, vec![1]);
-    elements = vec![1, 5, 6, 2, 3, 4];
-    insertionsort(&mut elements);
-    assert_eq!(elements, vec![1, 2, 3, 4, 5, 6]);
-}
+    #[test]
+    fn test_heap() {
+        let mut elements = Vec::new();
+        heapsort(&mut elements);
+        assert_eq!(elements, vec![]);
+        elements.push(1);
+        heapsort(&mut elements);
+        assert_eq!(elements, vec![1]);
+        elements = vec![1, 5, 6, 2, 3, 4];
+        heapsort(&mut elements);
+        assert_eq!(elements, vec![1, 2, 3, 4, 5, 6]);
+    }
 
-#[test]
-fn benchmark_sort() {
-    let start = std::time::Instant::now();
-    introspective(&mut vec![1, 3, 2]);
-    println!("{:#?}", start.elapsed());
+    #[test]
+    fn test_insertion() {
+        let mut elements = Vec::new();
+        insertionsort(&mut elements);
+        assert_eq!(elements, vec![]);
+        elements.push(1);
+        insertionsort(&mut elements);
+        assert_eq!(elements, vec![1]);
+        elements = vec![1, 5, 6, 2, 3, 4];
+        insertionsort(&mut elements);
+        assert_eq!(elements, vec![1, 2, 3, 4, 5, 6]);
+    }
+
+    #[test]
+    fn benchmark_sort() {
+        let start = std::time::Instant::now();
+        introspective(&mut vec![1, 3, 2]);
+        println!("{:#?}", start.elapsed());
+    }
 }

@@ -9,3 +9,25 @@ Got it working after some modification
 ## Kattis proof
 
 ![kattis proof](proof.png)
+
+## Useful links
+
+- [Kattis assignment](https://kth.kattis.com/problems/kth.alginda.quicksort)
+- [Kattis assignment statistics](https://kth.kattis.com/problems/kth.alginda.quicksort/statistics)
+
+- [Wikipedia Quicksort](https://www.wikiwand.com/en/Quicksort#/Hoare_partition_scheme)
+- [Wikipedia Introsort](https://www.wikiwand.com/en/Introsort)
+- [Multithreaded sorting benchmark](https://www.diva-portal.org/smash/get/diva2:839729/FULLTEXT02)
+- [Introsort medium article](https://11dhanushs.medium.com/intro-sort-a-brief-introduction-f06b419674de)
+- [GeeksForGeeks Introsort median of 3](https://www.geeksforgeeks.org/know-your-sorting-algorithm-set-2-introsort-cs-sorting-weapon/)
+- [GeeksForGeeks Introsort](https://www.geeksforgeeks.org/introsort-or-introspective-sort/)
+- [GeeksForGeeks Quicksort](https://www.geeksforgeeks.org/quick-sort/)
+- [Stackoverflow Median of 3](https://stackoverflow.com/a/55242934/10767416)
+- [Introsort benchmark (with good tests)](https://www.youtube.com/watch?v=Xwo3Ibghwi0)
+- [Benchmark for different sizes](http://warp.povusers.org/SortComparison/integers.html)
+- [Quicksort in Rust](https://www.hackertouch.com/quick-sort-in-rust.html)
+- [Rust std sort](https://doc.rust-lang.org/stable/src/core/slice/sort.rs.html)
+- [Rust Rosettacode Quicksort](https://rosettacode.org/wiki/Sorting_algorithms/Quicksort#Rust)
+- [Rust median of three quicksort crate](https://docs.rs/median_three_quicksort/latest/src/median_three_quicksort/quicksort.rs.html#1-79)
+- [Rust pdqsort crate](https://docs.rs/pdqsort/latest/src/pdqsort/lib.rs.html#1-896)
+- [pdqsort original implementation](https://github.com/orlp/pdqsort)
