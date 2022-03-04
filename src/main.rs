@@ -18,7 +18,7 @@ fn main() {
     introspective(&mut nums);
 
     print!("{}", nums[0]);
-    for num in nums {
+    for num in &nums[1..] {
         print!(" {}", num);
     }
 }
@@ -37,34 +37,30 @@ fn introsort(seq: &mut [i32], maxdepth: u32) {
     } else if maxdepth == 0 {
         heapsort(seq);
     } else {
-        let mid = (n - 1) / 2;
-        let pivot = median3(seq, 0, mid, n - 1);
-        let (start, _pivot, end) = seq.select_nth_unstable(pivot);
+        let p = partition(seq);
 
-        introsort(start, maxdepth - 1);
-        introsort(end, maxdepth - 1);
+        introsort(&mut seq[0..p], maxdepth - 1);
+        introsort(&mut seq[p + 1..n], maxdepth - 1);
     }
 }
 
-fn median3(seq: &[i32], a: usize, b: usize, c: usize) -> usize {
-    let (aa, bb, cc) = (seq[a], seq[b], seq[c]);
-    if aa < bb {
-        if bb < cc {
-            b
-        } else if aa < cc {
-            c
-        } else {
-            a
-        }
-    } else {
-        if aa < cc {
-            a
-        } else if bb < cc {
-            c
-        } else {
-            b
+fn partition<T: PartialOrd>(v: &mut [T]) -> usize {
+    let len = v.len();
+    let pivot_index = len / 2;
+    let last_index = len - 1;
+
+    v.swap(pivot_index, last_index);
+
+    let mut store_index = 0;
+    for i in 0..last_index {
+        if &v[i] < &v[last_index] {
+            v.swap(i, store_index);
+            store_index += 1;
         }
     }
+
+    v.swap(store_index, len - 1);
+    store_index
 }
 
 fn heapsort(seq: &mut [i32]) {
@@ -116,23 +112,24 @@ fn insertionsort(seq: &mut [i32]) {
     }
 }
 
-fn partition(seq: &mut [i32], low: usize, high: usize) -> usize {
-    let pivot = seq[low];
-    let mut i: i32 = low as i32 - 1;
-    let mut j: i32 = high as i32 + 1;
-    loop {
-        i = i + 1; // do, while
-        while seq[i as usize] < pivot {
-            i = i + 1;
+fn median3(seq: &[i32], a: usize, b: usize, c: usize) -> usize {
+    let (aa, bb, cc) = (seq[a], seq[b], seq[c]);
+    if aa < bb {
+        if bb < cc {
+            b
+        } else if aa < cc {
+            c
+        } else {
+            a
         }
-        j = j - 1; // do, while
-        while seq[j as usize] > pivot {
-            j = j - 1;
+    } else {
+        if aa < cc {
+            a
+        } else if bb < cc {
+            c
+        } else {
+            b
         }
-        if i >= j {
-            return j as usize;
-        }
-        seq.swap(i as usize, j as usize);
     }
 }
 
