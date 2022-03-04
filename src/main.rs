@@ -1,4 +1,4 @@
-use std::io::Read;
+use std::io::{Read, Write};
 
 fn main() {
     let mut line = String::new();
@@ -10,12 +10,10 @@ fn main() {
         .collect();
     introspective(&mut nums);
 
-    let mut output = String::new();
-    for num in &nums {
-        output.push_str(&num.to_string());
-        output.push(' ');
+    let out = std::io::stdout();
+    for num in nums {
+        out.lock().write_fmt(format_args!("{} ", num)).unwrap();
     }
-    print!("{}", output);
 }
 
 #[inline]
@@ -113,22 +111,12 @@ fn insertionsort(seq: &mut [i32]) {
 
 fn median3(seq: &[i32], a: usize, b: usize, c: usize) -> usize {
     let (aa, bb, cc) = (seq[a], seq[b], seq[c]);
-    if aa < bb {
-        if bb < cc {
-            b
-        } else if aa < cc {
-            c
-        } else {
-            a
-        }
+    if (aa > bb) ^ (aa > cc) {
+        a
+    } else if (bb < aa) ^ (bb < cc) {
+        b
     } else {
-        if aa < cc {
-            a
-        } else if bb < cc {
-            c
-        } else {
-            b
-        }
+        c
     }
 }
 
