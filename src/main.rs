@@ -1,9 +1,9 @@
-use std::io::{Read, Write};
+use std::io::{BufRead, Write};
 
 fn main() {
     let mut line = String::new();
-    std::io::stdin().lock().read_to_string(&mut line).unwrap();
-    let mut nums = line
+    std::io::stdin().lock().read_line(&mut line).unwrap();
+    let mut nums: Vec<i32> = line
         .split_ascii_whitespace()
         .skip(1)
         .map(|num| num.parse().unwrap())
@@ -11,13 +11,37 @@ fn main() {
     introspective(&mut nums);
 
     let out = std::io::stdout();
+    let mut out = out.lock();
     for num in nums {
-        out.lock().write_fmt(format_args!("{} ", num)).unwrap();
+        let bytes = num_to_bytes(num);
+        out.write_all(&bytes).unwrap();
+        out.write_all(&[' ' as u8]).unwrap();
     }
 }
 
-#[inline]
-fn introspective(seq: &mut Vec<i32>) {
+#[inline(always)]
+fn num_to_bytes(num: i32) -> [u8; 11] {
+    // sign of num (two's complement, first bit)
+    let mask = num >> 31;
+    // val as abs of num
+    let mut val = (num ^ mask) - mask;
+    // register for digits (11 digits is enough for all i32)
+    let mut msg = [0; 11];
+
+    // add minus sign if negative
+    if mask != 0 {
+        msg[0] = '-' as u8; // char code for minus sign '-'
+    }
+    for i in 0..10 {
+        // multiply by zero if no more digits (more efficient than branching)
+        msg[11 - i - 1] = (val != 0) as u8 * (48 + val % 10) as u8;
+        val /= 10;
+    }
+    msg
+}
+
+#[inline(always)]
+fn introspective(seq: &mut [i32]) {
     let depthlimit = 2 * ((seq.len() as f32).log2().floor() as u32);
     introsort(seq, depthlimit);
 }
@@ -37,7 +61,7 @@ fn introsort(seq: &mut [i32], maxdepth: u32) {
     }
 }
 
-#[inline]
+#[inline(always)]
 fn partition(v: &mut [i32]) -> usize {
     let len = v.len();
     let last_index = len - 1;
@@ -57,7 +81,7 @@ fn partition(v: &mut [i32]) -> usize {
     store_index
 }
 
-#[inline]
+#[inline(always)]
 fn heapsort(seq: &mut [i32]) {
     let end = seq.len();
 
@@ -73,7 +97,7 @@ fn heapsort(seq: &mut [i32]) {
     }
 }
 
-#[inline]
+#[inline(always)]
 fn sift_down(seq: &mut [i32], start: usize, end: usize) {
     let mut root = start;
     loop {
@@ -93,7 +117,7 @@ fn sift_down(seq: &mut [i32], start: usize, end: usize) {
     }
 }
 
-#[inline]
+#[inline(always)]
 fn insertionsort(seq: &mut [i32]) {
     let items = seq.len();
     if items < 2 {
@@ -123,39 +147,56 @@ fn median3(seq: &[i32], a: usize, b: usize, c: usize) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::time::Instant;
+
+    const SIZE: usize = 2048;
+
+    fn data_random<F>(mut f: F)
+    where
+        F: FnMut(&mut [i32]),
+    {
+        let mut nums: Vec<i32> = (0..SIZE).map(|_| rand::random()).collect();
+        let mut nums_copy = nums.clone();
+        let start = Instant::now();
+        f(&mut nums);
+        println!("{:#?}", start.elapsed());
+        nums_copy.sort();
+        assert_eq!(nums, nums_copy);
+    }
 
     #[test]
-    fn test_introspective() {
-        let mut elements = vec![];
-        introspective(&mut elements);
-        assert_eq!(elements, vec![]);
+    fn test_random() {
+        println!("Introspective:");
+        data_random(introspective);
+        println!("Insertion:");
+        data_random(insertionsort);
+        println!("Heapsort:");
+        data_random(heapsort);
+    }
 
-        let mut elements = vec![1];
-        introspective(&mut elements);
-        assert_eq!(elements, vec![1]);
-
-        let mut elements = vec![1, 5, 6, 2, 3, 4];
-        introspective(&mut elements);
-        assert_eq!(elements, vec![1, 2, 3, 4, 5, 6]);
-
-        let mut elements = vec![
-            7, 4, 7, 9, 4, 2, 6, 7, 8, 3, 1, 3, 5, 6, 7, 8, 2, 1, 9, 234, 534, 534, 423, 123, 4,
-            54, 34, 6,
-        ];
-        introspective(&mut elements);
-        assert_eq!(
-            elements,
-            vec![
-                1, 1, 2, 2, 3, 3, 4, 4, 4, 5, 6, 6, 6, 7, 7, 7, 7, 8, 8, 9, 9, 34, 54, 123, 234,
-                423, 534, 534
-            ]
-        );
-
-        let mut nums: Vec<i32> = (0..10000).map(|_| rand::random()).collect();
+    fn data_increasing<F>(mut f: F)
+    where
+        F: FnMut(&mut [i32]),
+    {
+        let mut nums: Vec<i32> = (-(SIZE as i32) / 2..(SIZE as i32) / 2).collect();
         let mut nums_copy = nums.clone();
-        introspective(&mut nums);
-        nums_copy.sort_unstable();
+        let start = Instant::now();
+        f(&mut nums);
+        println!("{:#?}", start.elapsed());
+        nums_copy.sort();
         assert_eq!(nums, nums_copy);
+    }
+
+    #[test]
+    fn test_increasing() {
+        println!("Increasing data");
+
+        println!("Introspective:");
+        data_increasing(introspective);
+        println!("Insertion:");
+        data_increasing(insertionsort);
+        println!("Heapsort:");
+        data_increasing(heapsort);
     }
 
     #[test]
@@ -186,7 +227,7 @@ mod tests {
 
     #[test]
     fn benchmark_sort() {
-        let start = std::time::Instant::now();
+        let start = Instant::now();
         introspective(&mut vec![1, 3, 2]);
         println!("{:#?}", start.elapsed());
     }
