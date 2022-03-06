@@ -10,34 +10,12 @@ fn main() {
         .collect();
     introspective(&mut nums);
 
-    let out = std::io::stdout();
-    let mut out = out.lock();
+    let mut res = String::new();
     for num in nums {
-        let bytes = num_to_bytes(num);
-        out.write_all(&bytes).unwrap();
-        out.write_all(&[' ' as u8]).unwrap();
+        res.push_str(&num.to_string());
+        res.push(' ');
     }
-}
-
-#[inline(always)]
-fn num_to_bytes(num: i32) -> [u8; 11] {
-    // sign of num (two's complement, first bit)
-    let mask = num >> 31;
-    // val as abs of num
-    let mut val = (num ^ mask) - mask;
-    // register for digits (11 digits is enough for all i32)
-    let mut msg = [0; 11];
-
-    // add minus sign if negative
-    if mask != 0 {
-        msg[0] = '-' as u8; // char code for minus sign '-'
-    }
-    for i in 0..10 {
-        // multiply by zero if no more digits (more efficient than branching)
-        msg[11 - i - 1] = (val != 0) as u8 * (48 + val % 10) as u8;
-        val /= 10;
-    }
-    msg
+    std::io::stdout().lock().write_all(res.as_bytes()).unwrap();
 }
 
 #[inline(always)]
@@ -49,7 +27,6 @@ fn introspective(seq: &mut [i32]) {
 fn introsort(seq: &mut [i32], maxdepth: u32) {
     let n = seq.len();
     if n < 2 {
-        return;
     } else if n <= 16 {
         insertionsort(seq);
     } else if maxdepth == 0 {
@@ -71,7 +48,7 @@ fn partition(v: &mut [i32]) -> usize {
 
     let mut store_index = 0;
     for i in 0..last_index {
-        if &v[i] < &v[last_index] {
+        if v[i] < v[last_index] {
             v.swap(i, store_index);
             store_index += 1;
         }
@@ -133,6 +110,7 @@ fn insertionsort(seq: &mut [i32]) {
     }
 }
 
+#[inline(always)]
 fn median3(seq: &[i32], a: usize, b: usize, c: usize) -> usize {
     let (aa, bb, cc) = (seq[a], seq[b], seq[c]);
     if (aa > bb) ^ (aa > cc) {
@@ -142,6 +120,36 @@ fn median3(seq: &[i32], a: usize, b: usize, c: usize) -> usize {
     } else {
         c
     }
+}
+
+#[allow(dead_code)]
+#[inline(always)]
+fn num_to_bytes(num: i32) -> [u8; 11] {
+    // special case: euler division breaks down for number 0
+    if num == 0 {
+        return [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 48];
+    }
+    // special case: abs cannot be represented
+    if num == std::i32::MIN {
+        return [45, 50, 49, 52, 55, 52, 56, 51, 54, 52, 56];
+    }
+    // sign of num (two's complement, first bit)
+    let mask = num >> 31;
+    // val as abs of num
+    let mut val = (num ^ mask).saturating_sub(mask);
+    // register for digits (11 digits is enough for all i32)
+    let mut msg = [0; 11];
+
+    // add minus sign if negative
+    if mask != 0 {
+        msg[0] = b'-'; // char code for minus sign '-'
+    }
+    for i in 0..10 {
+        // multiply by zero if no more digits (more efficient than branching)
+        msg[11 - i - 1] = (val != 0) as u8 * (48 + val % 10) as u8;
+        val /= 10;
+    }
+    msg
 }
 
 #[cfg(test)]
@@ -230,5 +238,49 @@ mod tests {
         let start = Instant::now();
         introspective(&mut vec![1, 3, 2]);
         println!("{:#?}", start.elapsed());
+    }
+
+    #[test]
+    fn test_num_to_bytes() {
+        assert_eq!(
+            num_to_bytes(1234567890),
+            [0, 49, 50, 51, 52, 53, 54, 55, 56, 57, 48]
+        );
+        assert_eq!(
+            num_to_bytes(987654321),
+            [0, 0, 57, 56, 55, 54, 53, 52, 51, 50, 49]
+        );
+        assert_eq!(
+            num_to_bytes(-1234567890),
+            [45, 49, 50, 51, 52, 53, 54, 55, 56, 57, 48]
+        );
+        assert_eq!(
+            num_to_bytes(-987654321),
+            [45, 0, 57, 56, 55, 54, 53, 52, 51, 50, 49]
+        );
+
+        assert_eq!(
+            num_to_bytes(i32::MAX),
+            [0, 50, 49, 52, 55, 52, 56, 51, 54, 52, 55]
+        );
+        assert_eq!(
+            num_to_bytes(i32::MIN),
+            [45, 50, 49, 52, 55, 52, 56, 51, 54, 52, 56]
+        );
+
+        for _ in 0..10000 {
+            let num: i32 = rand::random();
+            let res1: Vec<u8> = num
+                .to_string()
+                .as_bytes()
+                .iter()
+                .filter_map(|e| if *e != 0 { Some(*e) } else { None })
+                .collect();
+            let res2: Vec<u8> = num_to_bytes(num)
+                .iter()
+                .filter_map(|e| if *e != 0 { Some(*e) } else { None })
+                .collect();
+            assert_eq!(res1, res2);
+        }
     }
 }
